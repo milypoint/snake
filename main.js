@@ -2,6 +2,7 @@
 let colour = {
     'white': "#FFFFFF",
     'black': "#000000",
+    'red': "#ff0000",
 
 };
 
@@ -24,7 +25,8 @@ function onPageLoaded()
 {
     // Creating objects:
     let canvas = new CanvasFrame("canvas");
-    let player = new DotPlayer(100, 100, 1);
+    // let player = new DotPlayer(100, 100, 1);
+    let player = new SnakePlayer(400, 100);
     canvas.addObject(player);
 
 
@@ -70,7 +72,6 @@ class CanvasFrame
         'dot_size': 10
     };
     draw_objects = [];
-
     constructor(canvas_id)
     {
         this.can = document.getElementById(canvas_id);
@@ -79,7 +80,7 @@ class CanvasFrame
         this.config.width = parseInt(this.can.getAttribute("width"));
 
         this.canvasReset();
-        this.render_interval = setInterval(this.renderFrame.bind(this), 20); //1000/60
+
         this.logic_interval = setInterval(this.gameLogic.bind(this), 20);
     }
 
@@ -94,48 +95,44 @@ class CanvasFrame
 
     canvasReset()
     {
-        this.hdc.strokeStyle = 'red';
-        this.hdc.lineWidth = this.config.dot_size;
-        // Set background color:
+        // this.hdc.strokeStyle = 'red';
+        // this.hdc.lineWidth = this.config.dot_size;
 
+        // Set background color:
+        this.hdc.beginPath();
         this.hdc.fillStyle = colour.white;
         this.hdc.fillRect(0,0, this.config.width, this.config.height);
     }
 
-    addLine(x, y, _x, _y)
+    addLine(x, y, _x, _y, col=colour.black)
     {
+        this.hdc.beginPath();
+        this.hdc.strokeStyle = col;
         this.hdc.moveTo(x, y);
         this.hdc.lineTo(_x, _y);
+        this.hdc.lineWidth = this.config.dot_size/2;
+        this.hdc.stroke();
+
     }
 
-    addDot(x, y)
+    addDot(x, y, col=colour.black)
     {
-        this.hdc.fillStyle = colour.black;
+        this.hdc.beginPath();
+        this.hdc.fillStyle = col;
         this.hdc.fillRect(
-            x - this.config.dot_size/2,
-            y - this.config.dot_size/2,
-            this.config.dot_size,
-            this.config.dot_size
+            x - this.config.dot_size/2/2,
+            y - this.config.dot_size/2/2,
+            this.config.dot_size/2,
+            this.config.dot_size/2
         );
-    }
-
-    renderFrame()
-    {
-        if (this.new_frame) {
-            this.hdc.stroke();
-            this.new_frame = false;
-        }
+        this.hdc.stroke();
 
     }
 
     gameLogic()
     {
         this.canvasReset();
-        // this.addDot(this.draw_objects[0], this.draw_objects[1]);
-        // if ((this.draw_objects[0] < this.config.width -10) && (this.draw_objects[1] < this.config.height-10)){
-        //     this.draw_objects[1] += 1;
-        // }
-        // this.draw_objects.forEach(obj => function () {
+
         this.draw_objects.forEach(function (obj) {
             // console.log(obj);
             let speed = obj.speed;
@@ -143,41 +140,99 @@ class CanvasFrame
             if ((speed > 0) && (direction !== null)) {
                 switch (direction) {
                     case 'left':
-                        obj.x -= speed * this.config.dot_size;
+                        // obj.x -= speed * this.config.dot_size;
+                        obj.set_x(obj.x - speed * this.config.dot_size);
                         if (!obj.validateObject(this)) {
-                            obj.x += speed * this.config.dot_size; // restore
+                            // obj.x += speed * this.config.dot_size; // restore
+                            obj.set_x(obj.x + speed * this.config.dot_size); // restore
+
                         }
                         break;
                     case 'up':
-                        obj.y -= speed * this.config.dot_size;
+                        // obj.y -= speed * this.config.dot_size;
+                        obj.set_y(obj.y - speed * this.config.dot_size);
                         if (!obj.validateObject(this)) {
-                            obj.y += speed * this.config.dot_size; // restore
+                            // obj.y += speed * this.config.dot_size; // restore
+                            obj.set_y(obj.y + speed * this.config.dot_size); // restore
+
                         }
                         break;
                     case 'right':
-                        obj.x += speed * this.config.dot_size;
+                        // obj.x += speed * this.config.dot_size;
+                        obj.set_x(obj.x + speed * this.config.dot_size);
+
                         if (!obj.validateObject(this)) {
-                            obj.x -= speed * this.config.dot_size; // restore
+                            // obj.x -= speed * this.config.dot_size; // restore
+                            obj.set_x(obj.x - speed * this.config.dot_size);
+
                         }
                         break;
                     case 'down':
-                        obj.y += speed * this.config.dot_size;
+                        // obj.y += speed * this.config.dot_size;
+                        obj.set_y(obj.y + speed * this.config.dot_size);
                         if (!obj.validateObject(this)) {
-                            obj.y -= speed * this.config.dot_size; // restore
+                            // obj.y -= speed * this.config.dot_size; // restore
+                            obj.set_y(obj.y - speed * this.config.dot_size);
                         }
                         break;
                 }
             }
             obj.drawToCanvas(this);
+            // if(obj.speed == 1) {
+            //     clearInterval(this.logic_interval);
+            // }
         }, this);
         this.new_frame = true;
-        // console.log(this.draw_objects);
+        console.log(this.draw_objects);
     }
 }
 
 
 class DynamicObject
 {
+
+
+    // x = null;
+    // y = null;
+
+    set x(value)
+    {
+        this._x = value;
+        this.active_turn = false;
+    }
+
+    get x()
+    {
+        return this._x;
+    }
+
+    set y(value)
+    {
+        this._y = value;
+        this.active_turn = false;
+    }
+
+    get y()
+    {
+        return this._y;
+    }
+
+    /**
+     * @param {boolean} value
+     */
+    set active_turn(value)
+    {
+        this._active_turn = value;
+        if (value) {
+            this.onTurnEvent();
+        }
+    }
+
+    get active_turn()
+    {
+        return this._active_turn
+    }
+
     /**
      * CONSTRUCTOR
      * @param {int} x Position by X axis.
@@ -189,9 +244,15 @@ class DynamicObject
     {
         this.x = x;
         this.y = y;
+        this.active_turn = false;
         this.setSpeed(speed);
         this.setDirection(direction);
+        this.init_object();
     }
+
+    init_object() {}
+
+    onTurnEvent() {}
 
     /**
      * Change speed of dynamic object.
@@ -209,6 +270,9 @@ class DynamicObject
      * @param {(string|null)} direction in ['left', 'up', 'right', 'down', null]
      */
     setDirection(direction) {
+        if (this.active_turn) {
+            return;
+        }
         console.log('_');
         console.log(this.direction);
         if (direction === null) {
@@ -219,13 +283,14 @@ class DynamicObject
             return;
         } else if (this.direction === null) {
             this.direction = direction;
-
+            this.active_turn = true;
             console.log(this.direction);
             return;
         }
         // Cannot set direction opposite to current direction:
         if ((arrow_key[this.direction] !== (arrow_key[direction] - 2)) &&
             (arrow_key[this.direction] !== (arrow_key[direction] + 2))) {
+            this.active_turn = true;
             this.direction = direction;
         }
         console.log(this.direction);
@@ -278,30 +343,120 @@ class DotPlayer extends Player
 }
 
 
+/**
+ * Array nodes [[x0, y0], [x1, y1], ..., [xn, yn]],
+ * where [x0, y0] - head of stake, [xn, yn] - end of snake, and middle points means turns of snake.
+ * Two adjacent points must be on one straight line parallel to one of the axes: (x1 == x2 or y1 == x2) etc.
+ */
+class SnakePlayer extends Player
+{
+    /**
+     * @var {Array.<Array.<int>>} nodes Points that construct the snake.
+     */
+    init_object()
+    {
+        this.nodes = [[this.x, this.y]]
+        this.addNode((this.x - 400), this.y)
+        this.direction = 'right';
+    }
 
-// class Snake
-// {
-//     /*
-//     @input:  array [[x0, y0], [x1, y1], ..., [xn, yn]],
-//     where [x0, y0] - head of stake, [xn, yn] - end of snake, and middle points means turns of snake.
-//     Two adjacent points must be on one straight line parallel to one of the axes: (x1 == x2 or y1 == x2) etc.
-//      */
-//     constructor(nodes = [[0, 0], [0, 0]])
-//     {
-//         this.nodes = nodes;
-//     }
-//
-//     /*
-//     Adds node after snake head.
-//     @input: x, y - point of node. Must be not equal to head of snake.
-//      */
-//     addNode(x, y)
-//     {
-//         if (xor(x === this.nodes[0][0], y === this.nodes[0][1])) {
-//             console.log(1);
-//             this.nodes.splice(1, 0, [x, y]);
-//         }
-//     }
-// }
+    set_x(value)
+    {
+        this.nodes[0][0] = value;
+        let shift = Math.abs(this.x - value);
+        this.moveNodes(shift);
+        this.x = value;
+
+
+
+    }
+
+    set_y(value)
+    {
+        this.nodes[0][1] = value;
+        let shift = Math.abs(this.y - value);
+        this.moveNodes(shift);
+        this.y = value;
+
+
+
+    }
+
+    onTurnEvent() {
+        super.onTurnEvent();
+        this.addNode(this.x, this.y);
+
+    }
+
+    /**
+     * @param {int} shift Absolute shift of head
+     */
+    moveNodes(shift) {
+        // for (let i = 1; i < (this.nodes.length); i++){
+        //     let node = this.nodes[this.nodes.length -i];
+        //     let prev_node = this.nodes[this.nodes.length -i-1];
+        //
+        //     if (node[0] == prev_node[0]) {
+        //         node[1] += Math.sign(prev_node[1] - node[1]) * shift
+        //         continue;
+        //     }
+        //     if (node[1] == prev_node[1]) {
+        //          node[0] += Math.sign(prev_node[0] - node[0]) * shift
+        //         continue;
+        //     }
+        // }
+        let end_node = this.nodes[this.nodes.length - 1];
+        let prevend_node = this.nodes[this.nodes.length - 2];
+        console.log(`shift: ${shift}`);
+        console.log(`end_node: ${end_node} prevend_node ${prevend_node}`);
+        if (end_node[0] === prevend_node[0]) {
+            console.log(Math.sign(prevend_node[1] - end_node[1]) * shift);
+            end_node[1] += Math.sign(prevend_node[1] - end_node[1]) * shift;
+        } else if (end_node[1] === prevend_node[1]) {
+            console.log(Math.sign(prevend_node[0] - end_node[0]) * shift);
+            end_node[0] += Math.sign(prevend_node[0] - end_node[0]) * shift;
+        }
+        if ((end_node[0] === prevend_node[0]) && (end_node[1] === prevend_node[1])) {
+            console.log(true);
+            this.nodes.splice(this.nodes.length - 2, 1);
+        }
+        console.log(`end_node: ${this.nodes[this.nodes.length - 1]} prevend_node ${this.nodes[this.nodes.length - 2]}`);
+        console.log(this.nodes);
+
+
+
+    }
+
+    /**
+     * Adds node after snake head.
+     * [x, y] - point of node. Must be not equal to head of snake.
+     * @param {int} x
+     * @param {int} y
+     */
+    addNode(x, y)
+    {
+        // if (xor(x === this.nodes[0][0], y === this.nodes[0][1])) {
+        //     this.nodes.splice(1, 0, [x, y]);
+        // }
+        if ((x === this.nodes[0][0]) || (y === this.nodes[0][1])) {
+            this.nodes.splice(1, 0, [x, y]);
+        }
+    }
+
+    drawToCanvas(canvas)
+    {
+        for (let i = 0; i < (this.nodes.length - 1); i++) {
+            let x = this.nodes[i][0];
+            let y = this.nodes[i][1];
+            let x_ = this.nodes[i + 1][0];
+            let y_ = this.nodes[i + 1][1];
+            canvas.addLine(x, y, x_, y_);
+            canvas.addDot(x, y, colour.black);
+
+        }
+        canvas.addDot(this.x, this.y, colour.red);
+
+    }
+}
 
 
