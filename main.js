@@ -34,7 +34,7 @@ function onPageLoaded()
     // let player = new DotPlayer(100, 100, 1);
     let player = new SnakePlayer(400, 100);
     canvas.addObject(player);
-    let apple = new AppleObject(600, 400);
+    let apple = new AppleObject(500, 100);
     canvas.addObject(apple);
 
 
@@ -71,6 +71,20 @@ function getKeyByValue(object, value) {
 }
 
 function xor(foo, bar) { return ((foo && !bar) || (!foo && bar)); }
+
+/**
+ * Remove value from array.
+ * EX: arr = [1, 2, 3, 4], value = 3 then return [1, 2, 4]
+ * @param {Array} arr
+ * @param {?} value
+ * @return {?}
+ */
+function arrayRemValue(arr, value)
+{
+    return arr.filter(function(ele){
+        return ele !== value;
+    });
+}
 // --- end TOOLS
 
 /**
@@ -115,12 +129,13 @@ class CanvasFrame {
     /**
      * Switch between ON or OFF of game action.
      */
-    startStopGame() {
+    startStopGame()
+    {
         if (this.game_tick_interval !== undefined) {
             clearInterval(this.game_tick_interval);
             this.game_tick_interval = undefined;
         } else {
-            this.game_tick_interval = setInterval(this.gameTick.bind(this), 50);
+            this.game_tick_interval = setInterval(this.gameTick.bind(this), 100);
         }
     }
 
@@ -187,8 +202,7 @@ class CanvasFrame {
      * @param {number=} end_angle
      * @param {colour=} col
      */
-    addCycle(x, y, r=this.cfg.step, start_angle=0, end_angle=2*Math.PI, col=colour.black)
-    {
+    addCycle(x, y, r = this.cfg.step, start_angle = 0, end_angle = 2 * Math.PI, col = colour.black) {
         this.hdc.beginPath();
         this.hdc.fillStyle = col;
         this.hdc.strokeStyle = colour.black;
@@ -202,14 +216,24 @@ class CanvasFrame {
      * Game tick logic.
      */
     gameTick() {
+        console.log('start tick');
         this.canvasReset();
         this.objects.forEach(function (obj) {
             if (obj instanceof DynamicObject) {
                 let result = obj.move(this.cfg.step, this.isPointInCanvas);
+                // Check if DynamicObject hits some object:
+                let hit = this.isObjectHit(obj);
+                console.log(hit);
+                if (hit !== null) {
+                    console.log('hit');
+                    obj.onObjectHit(hit);
+                    this.objects = arrayRemValue(this.objects, hit);
+                }
             }
             obj.drawToCanvas(this);
         }, this);
         console.log(this.objects);
+        console.log('end tick');
     }
 
     /**
@@ -221,6 +245,24 @@ class CanvasFrame {
     isPointInCanvas = function (x, y) {
         return !((x < 0) || (x > this.cfg.width) || (y < 0) || (y > this.cfg.height));
     }.bind(this);
+
+    /**
+     * Check if object hits another object:
+     * @param {DynamicObject|StaticObject} object
+     * @return {DynamicObject|StaticObject|null}
+     */
+    isObjectHit(object) {
+        let result = null;
+        this.objects.forEach(function (obj) {
+            if (object !== obj) {
+                // console.log(`${object.x} ${obj.x} ${object.y} ${obj.y}`);
+                if ((object.x === obj.x) && (object.y === obj.y)) {
+                    result = obj;
+                }
+            }
+        });
+        return result;
+    }
 }
 
 /**
@@ -228,6 +270,7 @@ class CanvasFrame {
  */
 class StaticObject
 {
+    init_object() {}
     /**
      * @param {number} x
      * @param {number} y
@@ -236,6 +279,7 @@ class StaticObject
     {
         this.x = x;
         this.y = y;
+        this.init_object();
     }
 
     /**
@@ -441,6 +485,7 @@ class SnakePlayer extends Player
         this.nodes = [[this.x, this.y]];
         this.addNode((this.x - 100), this.y);
         this.direction = 'right';
+        this.apple_value = 0;
     }
 
     /**
@@ -482,9 +527,17 @@ class SnakePlayer extends Player
         let end_node = this.nodes[this.nodes.length - 1];
         let prev_node = this.nodes[this.nodes.length - 2];
         if (end_node[0] === prev_node[0]) {
-            end_node[1] += Math.sign(prev_node[1] - end_node[1]) * shift;
+            if (this.apple_value === 0) {
+                end_node[1] += Math.sign(prev_node[1] - end_node[1]) * shift;
+            } else {
+                this.apple_value -= 1;
+            }
         } else if (end_node[1] === prev_node[1]) {
-            end_node[0] += Math.sign(prev_node[0] - end_node[0]) * shift;
+            if (this.apple_value === 0) {
+                end_node[0] += Math.sign(prev_node[0] - end_node[0]) * shift;
+            } else {
+                this.apple_value -= 1;
+            }
         }
         if ((end_node[0] === prev_node[0]) && (end_node[1] === prev_node[1])) {
             this.nodes.splice(this.nodes.length - 2, 1);
@@ -511,7 +564,9 @@ class SnakePlayer extends Player
      */
     onObjectHit(obj)
     {
-        
+        if (obj instanceof AppleObject) {
+            this.apple_value = obj.value;
+        }
     }
 
     /**
@@ -540,6 +595,11 @@ class AppleObject extends StaticObject
     drawToCanvas(canvas)
     {
         canvas.addCycle(this.x, this.y, 5, _, _, colour.light_green);
+    }
+
+    init_object()
+    {
+        this.value = 5;
     }
 }
 
