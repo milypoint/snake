@@ -32,8 +32,9 @@ function onPageLoaded()
     // Creating objects:
     let canvas = new CanvasFrame("canvas");
     // let player = new DotPlayer(100, 100, 1);
-    let player = new SnakePlayer(400, 100);
-    canvas.addObject(player);
+    // let player = new SnakePlayer(400, 100);
+    // canvas.addObject(player);
+    let player = canvas.spawnObject(SnakePlayer);
     let apple = new AppleObject(500, 100);
     canvas.addObject(apple);
 
@@ -112,6 +113,8 @@ class CanvasFrame {
         this.cfg.height = parseInt(this.can.getAttribute("height"));
         this.cfg.width = parseInt(this.can.getAttribute("width"));
 
+        this.game_die = false;
+
         this.startStopGame();
 
     }
@@ -135,13 +138,15 @@ class CanvasFrame {
             clearInterval(this.game_tick_interval);
             this.game_tick_interval = undefined;
         } else {
-            this.game_tick_interval = setInterval(this.gameTick.bind(this), 100);
+            if (!this.game_die === true) {
+                this.game_tick_interval = setInterval(this.gameTick.bind(this), 100);
+            }
         }
     }
 
     /**
      * Adds static or dynamic object into object list.
-     * @param {DynamicObject|StaticObject} obj
+     * @param {Object.<DynamicObject>|Object.<StaticObject>} obj
      */
     addObject(obj) {
         this.objects.push(obj);
@@ -216,24 +221,34 @@ class CanvasFrame {
      * Game tick logic.
      */
     gameTick() {
-        console.log('start tick');
+        // console.log('start tick');
         this.canvasReset();
         this.objects.forEach(function (obj) {
             if (obj instanceof DynamicObject) {
                 let result = obj.move(this.cfg.step, this.isPointInCanvas);
+                if (!result) {
+                    console.log(result);
+                    this.game_die = true;
+                    this.startStopGame();
+                }
+                if (!obj.validate()) {
+                    this.game_die = true;
+                    this.startStopGame();
+                }
                 // Check if DynamicObject hits some object:
                 let hit = this.isObjectHit(obj);
-                console.log(hit);
+                // console.log(hit);
                 if (hit !== null) {
-                    console.log('hit');
+                    // console.log('hit');
                     obj.onObjectHit(hit);
                     this.objects = arrayRemValue(this.objects, hit);
+                    this.spawnObject(AppleObject);
                 }
             }
             obj.drawToCanvas(this);
         }, this);
-        console.log(this.objects);
-        console.log('end tick');
+        // console.log(this.objects);
+        // console.log('end tick');
     }
 
     /**
@@ -248,20 +263,48 @@ class CanvasFrame {
 
     /**
      * Check if object hits another object:
-     * @param {DynamicObject|StaticObject} object
-     * @return {DynamicObject|StaticObject|null}
+     * @param {Object.<DynamicObject>|Object.<StaticObject>} object
+     * @return {Object.<DynamicObject>|Object.<StaticObject>|null}
      */
     isObjectHit(object) {
         let result = null;
         this.objects.forEach(function (obj) {
             if (object !== obj) {
-                // console.log(`${object.x} ${obj.x} ${object.y} ${obj.y}`);
                 if ((object.x === obj.x) && (object.y === obj.y)) {
                     result = obj;
                 }
             }
         });
         return result;
+    }
+
+    /**
+     * Spawns object on canvas frame.
+     * @param {DynamicObject|StaticObject} class_obj
+     * @param {number|null} x
+     * @param {number|null} y
+     * @return {*}
+     */
+    spawnObject(class_obj, x=null, y=null)
+    {
+        if ((x === null) || (y === null)) {
+            x = this.randomPoint()[0];
+            y = this.randomPoint()[1];
+        }
+        if (!this.isPointInCanvas(x, y)) {
+            x = this.randomPoint()[0];
+            y = this.randomPoint()[1];
+        }
+        let obj = new class_obj(x, y);
+        this.objects.push(obj);
+        return obj;
+    }
+
+    randomPoint()
+    {
+        let x = Math.ceil((Math.random() * this.cfg.width) / this.cfg.step) * this.cfg.step;
+        let y = Math.ceil((Math.random() * this.cfg.height) / this.cfg.step) * this.cfg.step;
+        return [x, y];
     }
 }
 
@@ -302,10 +345,11 @@ class DynamicObject
     onXSet(prev_x) {}
     onYSet(prev_y) {}
     onObjectHit(obj) {}
+    validate() { return true;}
 
 
     /**
-     * @param {int} value
+     * @param {number} value
      */
     set x(value) {
         let prev_x = this.x;
@@ -317,7 +361,7 @@ class DynamicObject
     get x() { return this._x; }
 
     /**
-     * @param {int} value
+     * @param {number} value
      */
     set y(value) {
         let prev_y = this.y;
@@ -344,7 +388,7 @@ class DynamicObject
 
     /**
      * Change speed of dynamic object.
-     * @param {int} speed
+     * @param {number} speed
      */
     set speed(speed) { this._speed = speed; }
 
@@ -354,7 +398,7 @@ class DynamicObject
      * Change direction of dynamic object.
      * Cannot set direction opposite to current direction.
      * If direction === null then current speed set as 0.
-     * @param {(string)} direction Must be in ['left', 'up', 'right', 'down']
+     * @param {string} direction Must be in ['left', 'up', 'right', 'down']
      */
     set direction(direction) {
         // Cannot make turn before previous turn complete.
@@ -386,7 +430,7 @@ class DynamicObject
      * @param {int} x Position by X axis.
      * @param {int} y Position by Y axis.
      * @param {int} [speed=0]
-     * @param {(string|null)} [direction=null] in ['left', 'up', 'right', 'down', null]
+     * @param {string|null} [direction=null] in ['left', 'up', 'right', 'down', null]
      */
     constructor(x, y, speed = 0, direction = null)
     {
@@ -433,6 +477,7 @@ class DynamicObject
             }
             return false;
         }
+        return true;
     }
 }
 
@@ -483,7 +528,7 @@ class SnakePlayer extends Player
     init_object()
     {
         this.nodes = [[this.x, this.y]];
-        this.addNode((this.x - 100), this.y);
+        this.addNode((this.x-300), this.y);
         this.direction = 'right';
         this.apple_value = 0;
     }
@@ -520,8 +565,33 @@ class SnakePlayer extends Player
         this.addNode(this.x, this.y);
     }
 
+    validate()
+    {
+        function distance(a, b) {
+            return Math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2);
+        }
+
+        function is_between(a, b, c) {
+            return (distance(a,c) + distance(c,b)) === distance(a,b)
+        }
+
+        if (this.nodes.length <= 2) {
+            return true;
+        }
+        let head = [this.x, this.y];
+        for (let i = 1; i < (this.nodes.length - 1); i++) {
+            if ((head[0] === this.nodes[i][0]) && (head[1] === this.nodes[i][1])) {
+                continue;
+            }
+            if (is_between(this.nodes[i], this.nodes[i+1], head)) {
+                return  false;
+            }
+        }
+        return true;
+    }
+
     /**
-     * @param {int} shift Absolute shift of head
+     * @param {number} shift Absolute shift of head
      */
     moveNodes(shift) {
         let end_node = this.nodes[this.nodes.length - 1];
@@ -547,8 +617,8 @@ class SnakePlayer extends Player
     /**
      * Adds node after snake head.
      * [x, y] - point of node. Must be not equal to head of snake.
-     * @param {int} x
-     * @param {int} y
+     * @param {number} x
+     * @param {number} y
      */
     addNode(x, y)
     {
@@ -560,7 +630,7 @@ class SnakePlayer extends Player
     /**
      * Called by canvas game logic whenever this object have hit to other object.
      * Used for track when snake hit an apple.
-     * @param {DynamicObject|StaticObject} obj
+     * @param {Object.<DynamicObject>|Object.<StaticObject>} obj
      */
     onObjectHit(obj)
     {
@@ -570,7 +640,7 @@ class SnakePlayer extends Player
     }
 
     /**
-     * @param {CanvasFrame} canvas
+     * @param {Object.<CanvasFrame>} canvas
      */
     drawToCanvas(canvas)
     {
@@ -599,7 +669,7 @@ class AppleObject extends StaticObject
 
     init_object()
     {
-        this.value = 5;
+        this.value = 1;
     }
 }
 
