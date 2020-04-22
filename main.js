@@ -33,10 +33,7 @@ function onPageLoaded()
     let canvas = new CanvasFrame("canvas", 400, 400);
     let player = canvas.spawnObject(SnakePlayer);
     let apple = canvas.spawnObject(AppleObject);
-
     canvas.addObject(apple);
-
-
 
     // Make event listeners:
     window.addEventListener('keydown', function (e) {
@@ -69,8 +66,6 @@ function getKeyByValue(object, value) {
     return Object.keys(object).find(key => object[key] === value);
 }
 
-function xor(foo, bar) { return ((foo && !bar) || (!foo && bar)); }
-
 /**
  * Remove value from array.
  * EX: arr = [1, 2, 3, 4], value = 3 then return [1, 2, 4]
@@ -84,8 +79,10 @@ function arrayRemValue(arr, value)
         return ele !== value;
     });
 }
-// --- end TOOLS
+// --- end TOOLS ---
 
+
+// --- CLASSES ---
 /**
  * @var {Object.<string, number>} cfg
  * @var {Array} objects
@@ -519,23 +516,6 @@ class Player extends DynamicObject
         this.speed = 1;
         this.direction = key;
     }
-}
-
-
-/**
- * Presents Player as simple dot.
- */
-class DotPlayer extends Player
-{
-    /**
-     *
-     * @param {CanvasFrame} canvas
-     */
-    drawToCanvas(canvas)
-    {
-        canvas.addDot(this.x, this.y);
-    }
-
 }
 
 
