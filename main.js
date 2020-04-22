@@ -534,6 +534,8 @@ class SnakePlayer extends Player
         this.nodes = [[this.x, this.y]];
         this.addNode((this.x-10), this.y);
         this.direction = 'right';
+        //set active_turn to false because its actually not turn but init direction.
+        this.active_turn = false;
         this.apple_value = 0;
     }
 
