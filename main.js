@@ -434,14 +434,28 @@ class DynamicObject
      * @param {string} direction Must be in ['left', 'up', 'right', 'down']
      */
     set direction(direction) {
+
+        function validate_direction(prev_direction, direction) {
+            return ((arrow_key[prev_direction] !== (arrow_key[direction] - 2)) &&
+                (arrow_key[prev_direction] !== (arrow_key[direction] + 2)));
+        }
+
         // Cannot make turn before previous turn complete.
         // Cannot change direction to <null>.
         // direction must be typeof string.
         if (!(typeof direction === 'string' || direction instanceof String)) { return; }
 
         if (this.active_turn) {
-            if (this.turn_que.length < 2) {
-                this.turn_que.push(direction);
+            if (this.turn_que.length < 10) {
+                if (validate_direction((this.turn_que.length) ?
+                    this.turn_que[this.turn_que.length - 1] :
+                    this.direction,
+                    direction
+                ))
+                {
+                    this.turn_que.push(direction);
+
+                }
             }
             return;
         }
@@ -450,15 +464,14 @@ class DynamicObject
             this.active_turn = true;
         } else
         // Cannot set direction opposite to current direction:
-        if ((arrow_key[this.direction] !== (arrow_key[direction] - 2)) &&
-            (arrow_key[this.direction] !== (arrow_key[direction] + 2))) {
+        if (validate_direction(this.direction, direction)) {
             if (this.direction !== direction) {
                 this.active_turn = true;
                 this._direction = direction;
+                console.log(`Direction sets to: ${this.direction}`);
             }
 
         }
-        console.log(`Direction sets to: ${this.direction}`);
     }
 
     get direction() { return this._direction;}
