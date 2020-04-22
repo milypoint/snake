@@ -552,7 +552,7 @@ class SnakePlayer extends Player
     init_object()
     {
         this.nodes = [[this.x, this.y]];
-        this.addNode((this.x-300), this.y);
+        this.addNode((this.x-10), this.y);
         this.direction = 'right';
         this.apple_value = 0;
     }
