@@ -121,7 +121,6 @@ class CanvasFrame {
 
     get step() { return this.cfg.step; }
 
-
     /**
      * @param {string} canvas_id
      * @param {number|null} width
@@ -142,7 +141,7 @@ class CanvasFrame {
 
     /**
      * Calls whenever any of {control_kay} pressed.
-     * @param {control_key} key
+     * @param {string} key
      */
     onControlKeyPressed(key) {
         if (key === 'space') {
@@ -329,6 +328,7 @@ class CanvasFrame {
     }
 }
 
+
 /**
  * Class presents static object. Still can be moved by changing coordinates.
  */
@@ -358,16 +358,24 @@ class StaticObject
  */
 class DynamicObject
 {
+    turn_que = [];
     /**
      * "Abstract" functions
      */
     init_object() {}
-    onTurnEvent() {}
+    onTurn() {}
     onXSet(prev_x) {}
     onYSet(prev_y) {}
     onObjectHit(obj) {}
     validate() { return true;}
 
+    onMove()
+    {
+        this.active_turn = false;
+        if (this.turn_que.length) {
+            this.direction = this.turn_que.shift();
+        }
+    }
 
     /**
      * @param {number} value
@@ -375,8 +383,10 @@ class DynamicObject
     set x(value) {
         let prev_x = this.x;
         this._x = value;
-        this.active_turn = false;
         this.onXSet(prev_x);
+        if (prev_x !== value) {
+            this.onMove();
+        }
     }
 
     get x() { return this._x; }
@@ -387,8 +397,10 @@ class DynamicObject
     set y(value) {
         let prev_y = this.y;
         this._y = value;
-        this.active_turn = false;
         this.onYSet(prev_y);
+        if (prev_y !== value) {
+            this.onMove();
+        }
     }
 
     get y() { return this._y; }
@@ -401,7 +413,7 @@ class DynamicObject
     {
         this._active_turn = value;
         if (value) {
-            this.onTurnEvent();
+            this.onTurn();
         }
     }
 
@@ -425,7 +437,12 @@ class DynamicObject
         // Cannot make turn before previous turn complete.
         // Cannot change direction to <null>.
         // direction must be typeof string.
-        if ((this.active_turn) || !(typeof direction === 'string' || direction instanceof String)) {
+        if (!(typeof direction === 'string' || direction instanceof String)) { return; }
+
+        if (this.active_turn) {
+            if (this.turn_que.length < 2) {
+                this.turn_que.push(direction);
+            }
             return;
         }
         if (this.direction === undefined) {
@@ -465,7 +482,7 @@ class DynamicObject
 
     /**
      * @param {int} step
-     * @param {function(number, number): boolean} isPointInCanvas Function CanvasFrame.isPointInCanvas
+     * @param {function(number, number): boolean} isPointInCanvas Function from CanvasFrame.isPointInCanvas
      */
     move(step, isPointInCanvas)
     {
@@ -566,8 +583,8 @@ class SnakePlayer extends Player
     /**
      * Calls whenever changes direction of object.
      */
-    onTurnEvent() {
-        super.onTurnEvent();
+    onTurn() {
+        super.onTurn();
         this.addNode(this.x, this.y);
     }
 
@@ -663,8 +680,10 @@ class SnakePlayer extends Player
     }
 }
 
+
 /**
  * Apple that snake like to eat.
+ * @var {number} value Means how many point adds to snake.
  */
 class AppleObject extends StaticObject
 {
