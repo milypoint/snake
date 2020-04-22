@@ -30,12 +30,10 @@ window.addEventListener('load', onPageLoaded);
 function onPageLoaded()
 {
     // Creating objects:
-    let canvas = new CanvasFrame("canvas");
-    // let player = new DotPlayer(100, 100, 1);
-    // let player = new SnakePlayer(400, 100);
-    // canvas.addObject(player);
+    let canvas = new CanvasFrame("canvas", 400, 400);
     let player = canvas.spawnObject(SnakePlayer);
-    let apple = new AppleObject(500, 100);
+    let apple = canvas.spawnObject(AppleObject);
+
     canvas.addObject(apple);
 
 
@@ -103,15 +101,41 @@ class CanvasFrame {
     hdc;
     game_tick_interval;
 
+    set height(value)
+    {
+        this.cfg.height = value;
+        this.can.setAttribute('height', value);
+    }
+
+    get height() { return this.cfg.height; }
+
+    set width(value)
+    {
+        this.cfg.width = value;
+        this.can.setAttribute('width', value);
+    }
+
+    get width() { return this.cfg.width; }
+
+    set step(value)
+    {
+        this.cfg.step = value;
+    }
+
+    get step() { return this.cfg.step; }
+
 
     /**
      * @param {string} canvas_id
+     * @param {number|null} width
+     * @param {number|null} height
      */
-    constructor(canvas_id) {
+    constructor(canvas_id, width=null, height=null)
+    {
         this.can = document.getElementById(canvas_id);
         this.hdc = this.can.getContext('2d');
-        this.cfg.height = parseInt(this.can.getAttribute("height"));
-        this.cfg.width = parseInt(this.can.getAttribute("width"));
+        this.width = (width === null) ? parseInt(this.can.getAttribute("width")) : width;
+        this.height = (height === null) ? parseInt(this.can.getAttribute("height")) : height;
 
         this.game_die = false;
 
