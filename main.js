@@ -708,11 +708,14 @@ class SnakePlayer extends Player
         }
         let head = [this.x, this.y];
         for (let i = 1; i < (this.nodes.length - 1); i++) {
-            if ((head[0] === this.nodes[i][0]) && (head[1] === this.nodes[i][1])) {
-                continue;
-            }
-            if (is_between(this.nodes[i], this.nodes[i+1], head)) {
-                return  false;
+            if (isEqualsArrays(head, this.nodes[i])) continue;
+
+            if (is_between(
+                (this.nodes[i] instanceof Teleport) ? this.nodes[i].from() : this.nodes[i],
+                (this.nodes[i+1] instanceof Teleport) ? this.nodes[i+1].to() : this.nodes[i+1],
+                head
+            )) {
+                return false;
             }
         }
         return true;
