@@ -654,7 +654,7 @@ class SnakePlayer extends Player
     init_object()
     {
         this.nodes = [[this.x, this.y]];
-        this.addNode([this.x-300, this.y]);
+        this.addNode([this.x-100, this.y]);
         // Set direction without calling setter:
         this._direction = 'right';
         //set active_turn to false because its actually not turn but init direction.
@@ -867,26 +867,6 @@ class SnakePlayer extends Player
 
 class Teleport
 {
-    set x(value)
-    {
-        if (value === 0) this._x = 0;
-        else this._x = value;
-    }
-
-    get x() {
-        return this._x;
-    }
-
-    set y(value)
-    {
-        if (value === 0) this._y = 0;
-        else this._y = value;
-    }
-
-    get y() {
-        return this._y;
-    }
-
     constructor(x ,y, x_to, y_to) {
         this.x = x;
         this.y = y;
